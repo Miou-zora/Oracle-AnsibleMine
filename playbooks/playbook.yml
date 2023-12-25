@@ -1,0 +1,185 @@
+---                                                                                                                     
+- hosts: mineservers
+  become: true
+  vars_files:
+  - ../vars.yml
+  gather_facts: false
+  # pre_tasks:
+  # - name: 'install python 2'
+  #   raw: test -e /usr/bin/python || (apt -y update && apt install -y python)
+  tasks:
+  - name: Gathering facts
+    setup:
+  - name: Run yum-update
+    yum:
+      update_cache: yes
+
+  # - name: Install packages
+  #   yum:
+  #     name: "{{ packages }}"
+  #   vars:
+  #     packages:
+  #     - apt-transport-https
+  #     - ca-certificates
+  #     - curl
+  #     - gnupg2
+  #     - software-properties-common
+  #     - python3-pip
+  #     - python-pip
+  #     - python-pkg-resources
+  #     - python-setuptools
+  #     - zip
+  #     - unzip
+
+  - name: set mydistribution
+    ansible.builtin.set_fact:
+      mydistribution: "centos"
+
+  - name: Add signing key
+    ansible.builtin.rpm_key:
+      key: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
+      state: present
+
+  - name: Add repository into repo.d list
+    ansible.builtin.yum_repository:
+      name: docker
+      description: docker repository
+      baseurl: "https://download.docker.com/linux/{{ mydistribution }}/$releasever/$basearch/stable"
+      enabled: true
+      gpgcheck: true
+      gpgkey: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
+
+  - name: Install Docker
+    ansible.builtin.yum:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      state: latest
+      update_cache: true
+
+  - name: Install docker
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+
+  # - name: Install docker
+  #   apt:
+  #     name: "{{ packages }}"
+  #   vars:
+  #     packages:
+  #     - docker-ce
+  #     - docker-ce-cli
+  #     - containerd.io
+
+  - name: Install docker-pip
+    pip:
+      name:
+      - setuptools
+      - docker
+
+  - name: Ensure group "docker" exists
+    group:
+      name: docker
+      state: present
+
+  - name: Enable and start docker
+    ansible.builtin.service:
+      name: docker
+      state: started
+      enabled: yes
+
+  - name: Add new user 'mine', who can access docker
+    user:
+      uid: "{{ user_uid }}"
+      shell: /bin/bash
+      name: mine
+      append: yes
+      create_home: true
+      state: present
+
+  - name: Create data directory
+    file:
+      path: /home/mine/data
+      state: directory
+      owner: mine
+
+  - name: Create anisble tmp directory
+    file:
+      path: /home/mine/.ansible/tmp
+      mode: "0700"
+      state: directory
+      owner: mine
+
+  - name: Copy data
+    copy:
+      src: ../data/
+      dest: /home/mine/data/
+      owner: mine
+
+  - name: Create world folder if not exists
+    file:
+      path: "{{ world_location }}"
+      state: directory
+      mode: '0777'
+      recurse: yes
+      owner: mine
+      group: mine
+
+  - name: Check if a provided world is a zip
+    stat:
+      path: /home/mine/data/world.zip
+    register: world_is_zip
+
+  - name: Unzip world if it was a zip
+    unarchive:
+      src: /home/mine/data/world.zip
+      dest: "{{ world_location }}"
+      remote_src: yes
+      owner: mine
+      group: mine
+    when: world_is_zip.stat.exists
+
+  - name: Set server type to curseforge if modpack url is provided
+    set_fact:
+      server_type: CURSEFORGE
+    when: server_curse_forge_modpack != ""
+
+  - name: Set server type to default if empty
+    set_fact:
+      server_type: VANILLA
+    when: server_type is undefined
+
+  - name: Start Minecraft
+    docker_container:
+      name: mc
+      image: itzg/minecraft-server
+      env:
+        EULA: "TRUE"
+        SNOOPER_ENABLED: "FALSE"
+        GUI: "FALSE"
+        UID: "{{ user_uid }}"
+        SERVER_PORT: "{{ server_port }}"
+        MEMORY: "{{ server_memory }}"
+        TYPE: "{{ server_type }}"
+        VERSION: "{{ server_version }}"
+        PVP: "{{ server_pvp }}"
+        ONLINE_MODE: "{{ server_onlinemode }}"
+        SERVER_NAME: "{{ server_name }}"
+        DIFFICULTY: "{{ server_difficulty }}"
+        ICON: "{{ server_icon }}"
+        OPS: "{{ server_ops }}"
+        ANNOUNCE_PLAYER_ACHIEVEMENTS: "{{ server_showachievements }}"
+        MAX_PLAYERS: "{{ server_maxplayers }}"
+        MOTD: "{{ server_motd }}"
+        CF_SERVER_MOD: "{{ server_curse_forge_modpack }}"
+      ports:
+       - "{{ server_port }}:{{ server_port }}"
+      volumes:
+       - "/home/mine/data:/data"
+    # become_user: mine
+    become: true

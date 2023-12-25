@@ -1,0 +1,20 @@
+server_port: "25565"
+server_memory: "15G"
+
+# Required
+server_version: "1.20.4"
+server_pvp: "TRUE"
+server_onlinemode: "TRUE"
+server_name: "Anisble Minecraftserver"
+server_difficulty: "normal"
+server_maxplayers: "20"
+server_icon: ""
+server_showachievements: "TRUE"
+server_ops: "miouzora, Miouzora" # Example: "notch, wlad"
+server_motd: "Have fun!"
+
+# Optional
+world_location: "/home/mine/data/world" # world locatiom, default: "/home/mine/data/world"
+server_curse_forge_modpack: "https://edge.forgecdn.net/files/4971/982/Server-Files-0.2.32.zip" # Keep empty if you want vanilla or add the download link here
+
+user_uid: "6969"
