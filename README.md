@@ -2,6 +2,8 @@
   <img alt="AnsibleMine" src="https://raw.githubusercontent.com/wladi0097/AnsibleMine/master/misc/logo.png" width="500"/>
 </p>
 
+# /!\ I DON'T OWN THE MAJORITY OF THE CODE. CHECK [ANSIBLEMINE](https://github.com/wladi0097/AnsibleMine) IF YOU WANT THE ORIGINAL ONE /!\
+
 ### Supported Platforms
 
 * Ubuntu 18.04.
